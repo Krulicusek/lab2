@@ -17,14 +17,20 @@ namespace lab2
         private void InitializeBackgroundWorker()
         {
             backgroundWorker = new BackgroundWorker();
-            backgroundWorker.WorkerSupportsCancellation = true;
-            backgroundWorker.WorkerReportsProgress = true;
+            backgroundWorker.WorkerSupportsCancellation = true;            
             backgroundWorker.DoWork += new DoWorkEventHandler(BackgroundWorker_DoWork);
+            backgroundWorker.RunWorkerCompleted += new RunWorkerCompletedEventHandler(BackgroundWorker_RunWorkerCompleted);
         }
-
-        public void ChangeTire()
+        public bool IsFinished { get; private set; }
+        public async Task ChangeTire(int tireNumber)
         {
-
+            Console.WriteLine($"Changing tire number {tireNumber}...");
+            Task.Run(
+            async () =>
+            {
+                Task.Delay(2000);
+                Console.WriteLine($"Changing tire number {tireNumber} completed");
+            });
         }
 
         public void StopSign(bool shouldWork)
@@ -32,39 +38,40 @@ namespace lab2
             if (shouldWork)
             {
                 backgroundWorker.RunWorkerAsync();
+                IsFinished = false;
             }
             else
             {
-                backgroundWorker.CancelAsync();
-            }
+                backgroundWorker.CancelAsync();                
+            }            
         }
-
-        private void BackgroundWorker_DoWork(object? sender, DoWorkEventArgs e)
+        private void BackgroundWorker_RunWorkerCompleted(object? sender, RunWorkerCompletedEventArgs e)
+        {
+            Task.Run(async () =>
+            {
+                await Task.Delay(1000);
+                Console.WriteLine("Stop sign deactivated...");
+                IsFinished = true;
+            });
+        }
+        private async void BackgroundWorker_DoWork(object? sender, DoWorkEventArgs e)
         {
             if (sender == null)
             {
                 return;
             }
             BackgroundWorker bw = sender as BackgroundWorker;
-            if (bw.CancellationPending)
-            {
-                e.Cancel = true;
-            }
-            e.Result = LogState(bw, e);
-        }
-        private async Task LogState(BackgroundWorker bw, DoWorkEventArgs e)
-        {
-            while (true)
-            {
-                Thread.Sleep(100);
-                Console.WriteLine("stop sign is active");
-                //Check if there is a request to cancel the process
-                if (backgroundWorker.CancellationPending)
+
+            while (!bw.CancellationPending)
+            {                
+                Task.Run (() => 
                 {
-                    e.Cancel = true;
-                    return;
-                }
+                    Task.Delay(100);
+                    Console.WriteLine("Stop sign active");
+                });
             }
+          
         }
+        
     }
 }
